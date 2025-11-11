@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔐 Login System Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+        }
+        .login-form { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 5px; 
+            margin: 20px 0; 
+        }
+        .login-form input { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 3px; 
+            box-sizing: border-box;
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .result { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .user-list { 
+            background: #fff3cd; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Login System Test</h1>
+        
+        <div class="login-form">
+            <h2>Test Login</h2>
+            <input type="text" id="email" placeholder="Email" value="Admin">
+            <input type="password" id="password" placeholder="Password" value="Adm1n1strat0r">
+            <br>
+            <button class="btn-primary" onclick="testLogin()">Test Login</button>
+            <button class="btn-success" onclick="loadUsers()">Load Available Users</button>
+            <button class="btn-danger" onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div class="user-list">
+            <h3>Quick Test Accounts</h3>
+            <button onclick="setCredentials('Admin', 'Adm1n1strat0r')">Admin Account</button>
+            <button onclick="setCredentials('test@example.com', 'password123')">Test User</button>
+            <button onclick="setCredentials('teacher@school.com', 'teacher123')">Teacher</button>
+            <button onclick="setCredentials('student@school.com', 'student123')">Student</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://pxirgvkbrykkdutqxxhf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const results = document.getElementById('results');
+        
+        function addResult(type, message) {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function setCredentials(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            addResult('info', `🔄 Testing login with: ${email} / ${password}`);
+            
+            try {
+                // Test 1: Hardcoded admin
+                if (email === 'Admin' && password === 'Adm1n1strat0r') {
+                    addResult('success', '✅ ADMIN LOGIN: Hardcoded admin credentials work!');
+                    localStorage.setItem('test_admin_session', JSON.stringify({
+                        id: 'test-admin-id',
+                        email: 'admin@test.com',
+                        name: 'Test Administrator',
+                        role: 'admin'
+                    }));
+                    return;
+                }
+
+                // Test 2: Direct database lookup
+                addResult('info', '🔍 Checking database for user...');
+                const { data: userCheck, error: checkError } = await supabase
+                    .from('app_users')
+                    .select('*')
+                    .eq('email', email)
+                    .single();
+
+                if (userCheck) {
+                    addResult('success', `✅ USER FOUND: ${userCheck.name} (${userCheck.role})`);
+                    
+                    if (!userCheck.is_active) {
+                        addResult('error', '❌ ACCOUNT DEACTIVATED');
+                        return;
+                    }
+                    
+                    if (userCheck.password_hash === password) {
+                        addResult('success', '✅ PASSWORD MATCH: Login successful!');
+                        localStorage.setItem('current_user', JSON.stringify(userCheck));
+                        
+                        // Show user details
+                        addResult('info', `👤 User Details:<br>
+                            ID: ${userCheck.id}<br>
+                            Name: ${userCheck.name}<br>
+                            Email: ${userCheck.email}<br>
+                            Role: ${userCheck.role}<br>
+                            School: ${userCheck.school_id || 'None'}<br>
+                            Active: ${userCheck.is_active ? 'Yes' : 'No'}
+                        `);
+                    } else {
+                        addResult('error', '❌ PASSWORD MISMATCH');
+                    }
+                } else {
+                    addResult('error', `❌ USER NOT FOUND: ${checkError?.message || 'No user with this email'}`);
+                    
+                    // Test 3: Try Supabase Auth
+                    addResult('info', '🔐 Trying Supabase Auth...');
+                    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (authData.user && !authError) {
+                        addResult('success', '✅ SUPABASE AUTH: Authentication successful!');
+                        
+                        // Try to get user profile
+                        const { data: userData, error: userError } = await supabase
+                            .from('app_users')
+                            .select('*')
+                            .eq('id', authData.user.id)
+                            .single();
+
+                        if (userData) {
+                            addResult('success', `✅ PROFILE FOUND: ${userData.name} (${userData.role})`);
+                        } else {
+                            addResult('error', `❌ NO PROFILE: ${userError?.message}`);
+                        }
+                        
+                        // Sign out
+                        await supabase.auth.signOut();
+                    } else {
+                        addResult('error', `❌ SUPABASE AUTH FAILED: ${authError?.message}`);
+                    }
+                }
+
+            } catch (error) {
+                addResult('error', `❌ LOGIN ERROR: ${error.message}`);
+            }
+        }
+
+        async function loadUsers() {
+            addResult('info', '📋 Loading available users...');
+            
+            try {
+                const { data: users, error } = await supabase
+                    .from('app_users')
+                    .select('id, email, name, role, is_active, password_hash')
+                    .limit(10);
+
+                if (error) {
+                    addResult('error', `❌ FAILED TO LOAD USERS: ${error.message}`);
+                    return;
+                }
+
+                if (users && users.length > 0) {
+                    let userList = `✅ FOUND ${users.length} USERS:<br><br>`;
+                    users.forEach(user => {
+                        userList += `
+                            <strong>${user.name}</strong> (${user.role})<br>
+                            📧 Email: ${user.email}<br>
+                            🔑 Password: ${user.password_hash || 'Not set'}<br>
+                            ✅ Active: ${user.is_active ? 'Yes' : 'No'}<br>
+                            <button onclick="setCredentials('${user.email}', '${user.password_hash || ''}')" style="font-size: 12px; padding: 2px 8px;">Use This Account</button>
+                            <br><br>
+                        `;
+                    });
+                    addResult('success', userList);
+                } else {
+                    addResult('error', '❌ NO USERS FOUND');
+                }
+
+            } catch (error) {
+                addResult('error', `❌ ERROR LOADING USERS: ${error.message}`);
+            }
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+        }
+
+        // Auto-load users on page load
+        window.addEventListener('load', () => {
+            setTimeout(loadUsers, 1000);
+        });
+    </script>
+</body>
+</html>

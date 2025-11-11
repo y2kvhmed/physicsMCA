@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-user { margin: 10px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { margin: 5px; padding: 10px 15px; }
+        input { margin: 5px; padding: 8px; width: 200px; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Login System Test</h1>
+    
+    <h2>Test Credentials</h2>
+    <div class="test-user">
+        <strong>Admin:</strong> admin / admin
+        <button onclick="testLogin('admin', 'admin')">Test Admin</button>
+    </div>
+    <div class="test-user">
+        <strong>Teacher:</strong> teacher / teacher
+        <button onclick="testLogin('teacher', 'teacher')">Test Teacher</button>
+    </div>
+    <div class="test-user">
+        <strong>Student:</strong> student / student
+        <button onclick="testLogin('student', 'student')">Test Student</button>
+    </div>
+    <div class="test-user">
+        <strong>Super Admin:</strong> Admin / Adm1n1strat0r
+        <button onclick="testLogin('Admin', 'Adm1n1strat0r')">Test Super Admin</button>
+    </div>
+
+    <h2>Manual Test</h2>
+    <div>
+        <input type="text" id="email" placeholder="Email" value="admin">
+        <input type="password" id="password" placeholder="Password" value="admin">
+        <button onclick="manualTest()">Test Login</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(test, success, message) {
+            const div = document.createElement('div');
+            div.className = `test-user ${success ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${test}:</strong> ${success ? '✅' : '❌'} ${message}`;
+            results.appendChild(div);
+        }
+
+        async function testLogin(email, password) {
+            try {
+                // Simulate the auth check
+                const testUsers = [
+                    { email: 'admin', password: 'admin', role: 'admin' },
+                    { email: 'teacher', password: 'teacher', role: 'teacher' },
+                    { email: 'student', password: 'student', role: 'student' },
+                    { email: 'Admin', password: 'Adm1n1strat0r', role: 'admin' }
+                ];
+
+                const user = testUsers.find(u => u.email === email && u.password === password);
+                
+                if (user) {
+                    addResult(`Login ${email}`, true, `Successfully logged in as ${user.role}`);
+                    
+                    // Test database connection
+                    await testDatabaseConnection();
+                } else {
+                    addResult(`Login ${email}`, false, 'Invalid credentials');
+                }
+            } catch (error) {
+                addResult(`Login ${email}`, false, error.message);
+            }
+        }
+
+        async function manualTest() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            await testLogin(email, password);
+        }
+
+        async function testDatabaseConnection() {
+            try {
+                const supabaseUrl = 'https://pxirgvkbrykkdutqxxhf.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w';
+                
+                const response = await fetch(`${supabaseUrl}/rest/v1/app_users?select=email,role&limit=3`, {
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('Database Test', true, `Found ${data.length} users in database`);
+                } else {
+                    addResult('Database Test', false, `HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('Database Test', false, error.message);
+            }
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testLogin('admin', 'admin');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

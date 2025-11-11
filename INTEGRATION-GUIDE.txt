@@ -1,0 +1,244 @@
+INTEGRATION GUIDE - HOW TO USE ALL NEW FEATURES
+================================================
+
+1. SETUP PUSH NOTIFICATIONS IN APP.TSX OR _LAYOUT.TSX
+------------------------------------------------------
+Wrap your app with NotificationProvider:
+
+import { NotificationProvider } from './contexts/NotificationContext';
+
+export default function RootLayout() {
+  return (
+    <NotificationProvider>
+      {/* Your app content */}
+    </NotificationProvider>
+  );
+}
+
+2. ADD EXPO PROJECT ID TO pushNotifications.ts
+-----------------------------------------------
+Line 32 in lib/pushNotifications.ts:
+projectId: 'your-expo-project-id', // Get from app.json or expo.dev
+
+3. SETUP ASSIGNMENT REMINDER CRON JOB
+--------------------------------------
+Create a serverless function or cron job that runs daily:
+
+import { scheduleAssignmentReminders } from './lib/pushNotifications';
+
+// Run this once per day (e.g., at 9 AM)
+export async function dailyReminders() {
+  await scheduleAssignmentReminders();
+}
+
+// Using Supabase Edge Functions:
+// supabase functions new daily-reminders
+// Deploy and set up cron trigger
+
+4. ADD NAVIGATION LINKS TO DASHBOARDS
+--------------------------------------
+
+STUDENT DASHBOARD - Add these buttons:
+- Notes: router.push('/notes')
+- Notifications: router.push('/notifications')
+
+TEACHER DASHBOARD - Add these buttons:
+- Attendance: router.push('/attendance')
+- Notifications: router.push('/notifications')
+
+ADMIN DASHBOARD - Add these buttons:
+- Audit Logs: router.push('/audit-logs') (to be created)
+- Notifications: router.push('/notifications')
+
+5. INTEGRATE DUE DATE BADGES
+-----------------------------
+In any assignment list screen:
+
+import DueDateBadge from '../components/DueDateBadge';
+import { sortAssignmentsByDueDate } from '../lib/assignmentUtils';
+
+// Sort assignments
+const sortedAssignments = sortAssignmentsByDueDate(assignments);
+
+// In render:
+{sortedAssignments.map((assignment) => (
+  <View key={assignment.id}>
+    <Text>{assignment.title}</Text>
+    {assignment.due_date && (
+      <DueDateBadge dueDate={assignment.due_date} size="small" />
+    )}
+  </View>
+))}
+
+6. PREVENT LATE SUBMISSIONS
+----------------------------
+In submit-assignment.tsx:
+
+import { canSubmitAssignment } from '../lib/assignmentUtils';
+
+const handleSubmit = () => {
+  if (!canSubmitAssignment(assignment.due_date)) {
+    Alert.alert('Overdue', 'This assignment is past due and no longer accepts submissions');
+    return;
+  }
+  // Continue with submission
+};
+
+7. ADD HAPTIC FEEDBACK TO BUTTONS
+----------------------------------
+Import and use in any button press:
+
+import { hapticFeedback } from '../lib/haptics';
+
+<TouchableOpacity onPress={() => {
+  hapticFeedback.light(); // On press
+  // Do action
+  hapticFeedback.success(); // On success
+}}>
+
+8. ADD PULL TO REFRESH
+----------------------
+Already added to: notes.tsx, attendance.tsx, notifications.tsx
+Add to other screens:
+
+const [refreshing, setRefreshing] = useState(false);
+
+const onRefresh = async () => {
+  setRefreshing(true);
+  await loadData();
+  setRefreshing(false);
+};
+
+<ScrollView
+  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+>
+
+9. SHOW NOTIFICATION BADGE
+---------------------------
+In header/navigation:
+
+import { useNotifications } from '../contexts/NotificationContext';
+
+const { unreadCount } = useNotifications();
+
+<TouchableOpacity onPress={() => router.push('/notifications')}>
+  <Ionicons name="notifications" size={24} />
+  {unreadCount > 0 && (
+    <View style={styles.badge}>
+      <Text style={styles.badgeText}>{unreadCount}</Text>
+    </View>
+  )}
+</TouchableOpacity>
+
+10. REQUEST NOTIFICATION PERMISSIONS ON LOGIN
+----------------------------------------------
+In login screen after successful login:
+
+import { registerForPushNotifications } from '../lib/pushNotifications';
+
+// After login success:
+await registerForPushNotifications(user.id);
+
+TESTING CHECKLIST:
+==================
+□ Run NEW-FEATURES-SCHEMA.sql in Supabase
+□ Add NotificationProvider to app root
+□ Add Expo project ID to pushNotifications.ts
+□ Test push notifications on physical device
+□ Add navigation links to all dashboards
+□ Test student notes feature
+□ Test attendance tracker
+□ Test creating assignment (should send notification)
+□ Test creating material (should send notification)
+□ Test creating recording (should send notification)
+□ Test due date badges on assignments
+□ Test preventing late submissions
+□ Test haptic feedback on physical device
+□ Set up cron job for assignment reminders
+□ Test notification badge count
+□ Test marking notifications as read
+□ Test pull to refresh on all screens
+
+EXPO CONFIGURATION:
+===================
+Add to app.json:
+
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/notification-sound.wav"]
+        }
+      ]
+    ],
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#ffffff",
+      "androidMode": "default",
+      "androidCollapsedTitle": "{{unread_count}} new notifications"
+    }
+  }
+}
+
+SUPABASE EDGE FUNCTION FOR REMINDERS:
+======================================
+Create: supabase/functions/daily-reminders/index.ts
+
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+
+  // Get assignments due tomorrow
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowStr = tomorrow.toISOString().split('T')[0]
+
+  const { data: assignments } = await supabase
+    .from('assignments')
+    .select('id, title, school_id')
+    .eq('due_date', tomorrowStr)
+
+  // Send notifications for each
+  for (const assignment of assignments || []) {
+    // Get students in school
+    const { data: students } = await supabase
+      .from('app_users')
+      .select('id')
+      .eq('school_id', assignment.school_id)
+      .eq('role', 'student')
+
+    // Get push tokens
+    const { data: tokens } = await supabase
+      .from('push_tokens')
+      .select('token')
+      .in('user_id', students?.map(s => s.id) || [])
+
+    // Send via Expo Push API
+    const messages = tokens?.map(t => ({
+      to: t.token,
+      title: 'Assignment Due Tomorrow',
+      body: `"${assignment.title}" is due tomorrow!`,
+      data: { type: 'assignment_reminder', entityId: assignment.id }
+    }))
+
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages)
+    })
+  }
+
+  return new Response('OK', { status: 200 })
+})
+
+Deploy: supabase functions deploy daily-reminders
+Schedule: Set up cron trigger in Supabase dashboard

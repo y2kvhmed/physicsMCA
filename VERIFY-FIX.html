@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>✅ Verify Database Fix</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f0f8ff; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            border-left: 5px solid #28a745;
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            border-left: 5px solid #dc3545;
+        }
+        .info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            border-left: 5px solid #17a2b8;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            margin: 10px 5px; 
+            transition: background 0.3s;
+        }
+        button:hover { 
+            background: #0056b3; 
+        }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #1e7e34; }
+        .data-display { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            border: 1px solid #dee2e6;
+        }
+        .login-test { 
+            background: #fff3cd; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            border-left: 5px solid #ffc107;
+        }
+        .login-test input { 
+            width: 200px; 
+            padding: 8px; 
+            margin: 5px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Verify Database Fix</h1>
+        <p>This tool will verify that your database fix worked and all data is accessible.</p>
+        
+        <button onclick="runFullVerification()">🔍 Run Full Verification</button>
+        <button onclick="testLogin()" class="btn-success">🔐 Test Login System</button>
+        
+        <div class="login-test">
+            <h3>🧪 Quick Login Test</h3>
+            <input type="text" id="testEmail" placeholder="Email" value="admin@testschool.edu">
+            <input type="password" id="testPassword" placeholder="Password" value="admin123">
+            <button onclick="quickLogin()">Test Login</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://pxirgvkbrykkdutqxxhf.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w'
+        );
+        
+        const results = document.getElementById('results');
+        
+        function addResult(type, title, message) {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `<strong>${title}</strong><br>${message}`;
+            results.appendChild(div);
+        }
+
+        async function runFullVerification() {
+            results.innerHTML = '';
+            addResult('info', '🚀 Starting Verification', 'Checking all database components...');
+            
+            // Test 1: Check tables have data
+            await checkTableData();
+            
+            // Test 2: Test authentication
+            await testAuthentication();
+            
+            // Test 3: Test data operations
+            await testDataOperations();
+            
+            // Test 4: Test storage
+            await testStorage();
+            
+            addResult('success', '✅ Verification Complete', 'Check results above for any issues.');
+        }
+
+        async function checkTableData() {
+            addResult('info', '📊 Checking Table Data', 'Verifying all tables have records...');
+            
+            const tables = ['schools', 'app_users', 'classes', 'enrollments'];
+            let totalRecords = 0;
+            
+            for (const table of tables) {
+                try {
+                    const { data, error } = await supabase
+                        .from(table)
+                        .select('*');
+                    
+                    if (error) {
+                        addResult('error', `❌ ${table}`, `Error: ${error.message}`);
+                    } else {
+                        const count = data ? data.length : 0;
+                        totalRecords += count;
+                        
+                        if (count > 0) {
+                            addResult('success', `✅ ${table}`, `Found ${count} records`);
+                            
+                            // Show sample data
+                            if (data[0]) {
+                                const sample = JSON.stringify(data[0], null, 2);
+                                addResult('info', `Sample from ${table}`, `<div class="data-display">${sample}</div>`);
+                            }
+                        } else {
+                            addResult('error', `❌ ${table}`, 'No records found - run the SQL fix first!');
+                        }
+                    }
+                } catch (err) {
+                    addResult('error', `❌ ${table}`, `Exception: ${err.message}`);
+                }
+            }
+            
+            if (totalRecords > 0) {
+                addResult('success', '🎉 Data Check Passed', `Found ${totalRecords} total records across all tables!`);
+            } else {
+                addResult('error', '❌ No Data Found', 'Please run the EMERGENCY-DATABASE-FIX.sql script first!');
+            }
+        }
+
+        async function testAuthentication() {
+            addResult('info', '🔐 Testing Authentication', 'Checking login system...');
+            
+            try {
+                // Get available users
+                const { data: users, error } = await supabase
+                    .from('app_users')
+                    .select('email, password_hash, role, name')
+                    .eq('is_active', true);
+                
+                if (error) {
+                    addResult('error', '❌ Auth Test Failed', `Cannot access users: ${error.message}`);
+                    return;
+                }
+                
+                if (!users || users.length === 0) {
+                    addResult('error', '❌ No Users Found', 'No active users available for testing');
+                    return;
+                }
+                
+                addResult('success', '✅ Users Available', `Found ${users.length} active users for testing:`);
+                
+                let userList = '';
+                users.forEach(user => {
+                    userList += `• ${user.name} (${user.role}) - Email: ${user.email}, Password: ${user.password_hash}\n`;
+                });
+                
+                addResult('info', '👥 Available Test Accounts', `<div class="data-display">${userList}</div>`);
+                
+                // Test login with first user
+                const testUser = users[0];
+                await testLoginWithCredentials(testUser.email, testUser.password_hash);
+                
+            } catch (err) {
+                addResult('error', '❌ Auth Test Error', err.message);
+            }
+        }
+
+        async function testLoginWithCredentials(email, password) {
+            try {
+                addResult('info', '🔄 Testing Login', `Attempting login with ${email}...`);
+                
+                // Test direct database lookup (our custom auth method)
+                const { data: user, error } = await supabase
+                    .from('app_users')
+                    .select('*')
+                    .eq('email', email)
+                    .eq('password_hash', password)
+                    .eq('is_active', true)
+                    .single();
+                
+                if (error) {
+                    addResult('error', '❌ Login Failed', `Database lookup failed: ${error.message}`);
+                } else if (user) {
+                    addResult('success', '✅ Login Successful', `Logged in as ${user.name} (${user.role})`);
+                    
+                    // Store in localStorage to simulate app behavior
+                    localStorage.setItem('current_user', JSON.stringify(user));
+                    
+                    addResult('info', '💾 Session Stored', 'User session saved to localStorage');
+                } else {
+                    addResult('error', '❌ Login Failed', 'Invalid credentials');
+                }
+                
+            } catch (err) {
+                addResult('error', '❌ Login Error', err.message);
+            }
+        }
+
+        async function testDataOperations() {
+            addResult('info', '⚙️ Testing Data Operations', 'Testing CRUD operations...');
+            
+            try {
+                // Test creating a new assignment
+                const { data: assignment, error: assignError } = await supabase
+                    .from('assignments')
+                    .insert({
+                        title: 'Test Assignment',
+                        description: 'This is a test assignment created by the verification tool',
+                        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+                        max_score: 100,
+                        school_id: (await supabase.from('schools').select('id').limit(1).single()).data?.id
+                    })
+                    .select()
+                    .single();
+                
+                if (assignError) {
+                    addResult('error', '❌ Create Test Failed', `Cannot create assignment: ${assignError.message}`);
+                } else {
+                    addResult('success', '✅ Create Test Passed', `Created assignment: ${assignment.title}`);
+                    
+                    // Test updating the assignment
+                    const { error: updateError } = await supabase
+                        .from('assignments')
+                        .update({ description: 'Updated by verification tool' })
+                        .eq('id', assignment.id);
+                    
+                    if (updateError) {
+                        addResult('error', '❌ Update Test Failed', updateError.message);
+                    } else {
+                        addResult('success', '✅ Update Test Passed', 'Successfully updated assignment');
+                    }
+                    
+                    // Test deleting the assignment
+                    const { error: deleteError } = await supabase
+                        .from('assignments')
+                        .delete()
+                        .eq('id', assignment.id);
+                    
+                    if (deleteError) {
+                        addResult('error', '❌ Delete Test Failed', deleteError.message);
+                    } else {
+                        addResult('success', '✅ Delete Test Passed', 'Successfully deleted test assignment');
+                    }
+                }
+                
+            } catch (err) {
+                addResult('error', '❌ Data Operations Error', err.message);
+            }
+        }
+
+        async function testStorage() {
+            addResult('info', '📁 Testing Storage', 'Checking storage buckets...');
+            
+            const buckets = ['study-materials', 'submissions', 'videos'];
+            
+            for (const bucket of buckets) {
+                try {
+                    const { data, error } = await supabase.storage
+                        .from(bucket)
+                        .list('', { limit: 1 });
+                    
+                    if (error) {
+                        addResult('error', `❌ Storage: ${bucket}`, error.message);
+                    } else {
+                        addResult('success', `✅ Storage: ${bucket}`, `Accessible (${data.length} files in root)`);
+                    }
+                } catch (err) {
+                    addResult('error', `❌ Storage: ${bucket}`, err.message);
+                }
+            }
+        }
+
+        async function quickLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            await testLoginWithCredentials(email, password);
+        }
+
+        async function testLogin() {
+            await testAuthentication();
+        }
+
+        // Auto-run verification on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addResult('info', '🎯 Ready', 'Click "Run Full Verification" to test your database fix!');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

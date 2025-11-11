@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔧 Database Recovery Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .critical { 
+            background: #ffebee; 
+            border-color: #f44336; 
+        }
+        .success { 
+            background: #e8f5e8; 
+            border-color: #4caf50; 
+        }
+        .warning { 
+            background: #fff3e0; 
+            border-color: #ff9800; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+        .btn-primary { background: #2196f3; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        input, textarea { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 3px; 
+            box-sizing: border-box; 
+        }
+        .result { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+        }
+        .error { background: #ffebee; color: #c62828; }
+        .success-result { background: #e8f5e8; color: #2e7d32; }
+        .info { background: #e3f2fd; color: #1565c0; }
+        .code { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            overflow-x: auto; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Database Recovery Tool</h1>
+        <p><strong>Problem:</strong> Your app shows 0 records but you have data. This tool will help diagnose and fix the issue.</p>
+        
+        <div class="section critical">
+            <h2>🚨 Critical Issue Detected</h2>
+            <p>All tables show 0 records. Possible causes:</p>
+            <ul>
+                <li>Wrong Supabase project URL</li>
+                <li>Wrong API key</li>
+                <li>RLS policies blocking access</li>
+                <li>Data in different schema/database</li>
+                <li>Connection to wrong environment</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Step 1: Verify Connection Details</h2>
+            <p>Current connection:</p>
+            <div class="code">URL: https://pxirgvkbrykkdutqxxhf.supabase.co
+Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w</div>
+            
+            <h3>Test Different Credentials</h3>
+            <input type="text" id="testUrl" placeholder="Supabase URL" value="https://pxirgvkbrykkdutqxxhf.supabase.co">
+            <input type="text" id="testKey" placeholder="Supabase Anon Key" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w">
+            <button class="btn-primary" onclick="testConnection()">Test Connection</button>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Step 2: Create Sample Data</h2>
+            <p>Let's create some test data to verify the connection works:</p>
+            <button class="btn-success" onclick="createSampleData()">Create Sample Data</button>
+            <button class="btn-warning" onclick="checkExistingData()">Check for Hidden Data</button>
+        </div>
+
+        <div class="section">
+            <h2>🔒 Step 3: Fix RLS Policies</h2>
+            <p>Generate SQL to fix Row Level Security policies:</p>
+            <button class="btn-primary" onclick="generateRLSFix()">Generate RLS Fix SQL</button>
+            <button class="btn-danger" onclick="disableRLS()">Temporarily Disable RLS</button>
+        </div>
+
+        <div class="section">
+            <h2>📊 Step 4: Manual Data Check</h2>
+            <textarea id="customSQL" placeholder="Enter custom SQL query" rows="3">SELECT * FROM schools LIMIT 5;</textarea>
+            <button class="btn-primary" onclick="runCustomSQL()">Run Query</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let currentSupabase = window.supabase.createClient(
+            'https://pxirgvkbrykkdutqxxhf.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w'
+        );
+        
+        const results = document.getElementById('results');
+        
+        function addResult(type, message) {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function testConnection() {
+            const url = document.getElementById('testUrl').value;
+            const key = document.getElementById('testKey').value;
+            
+            addResult('info', `🔄 Testing connection to: ${url}`);
+            
+            try {
+                const testClient = window.supabase.createClient(url, key);
+                
+                // Test basic connection
+                const { data, error } = await testClient
+                    .from('schools')
+                    .select('*')
+                    .limit(5);
+                
+                if (error) {
+                    addResult('error', `❌ Connection failed: ${error.message}`);
+                } else {
+                    addResult('success-result', `✅ Connection successful! Found ${data.length} schools`);
+                    if (data.length > 0) {
+                        addResult('info', `📊 Sample data: ${JSON.stringify(data[0], null, 2)}`);
+                    }
+                    currentSupabase = testClient;
+                }
+                
+                // Test all tables
+                const tables = ['schools', 'app_users', 'assignments', 'study_materials'];
+                for (const table of tables) {
+                    const { data: tableData, error: tableError } = await testClient
+                        .from(table)
+                        .select('*')
+                        .limit(3);
+                    
+                    if (tableError) {
+                        addResult('error', `❌ ${table}: ${tableError.message}`);
+                    } else {
+                        addResult('success-result', `✅ ${table}: ${tableData.length} records`);
+                        if (tableData.length > 0) {
+                            addResult('info', `Sample from ${table}: ${JSON.stringify(tableData[0], null, 2)}`);
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                addResult('error', `❌ Test failed: ${error.message}`);
+            }
+        }
+
+        async function createSampleData() {
+            addResult('info', '🔄 Creating sample data...');
+            
+            try {
+                // Create a test school
+                const { data: school, error: schoolError } = await currentSupabase
+                    .from('schools')
+                    .insert({
+                        name: 'Test School',
+                        address: '123 Test Street',
+                        phone: '555-0123',
+                        email: 'test@school.com'
+                    })
+                    .select()
+                    .single();
+                
+                if (schoolError) {
+                    addResult('error', `❌ Failed to create school: ${schoolError.message}`);
+                    return;
+                }
+                
+                addResult('success-result', `✅ Created school: ${JSON.stringify(school, null, 2)}`);
+                
+                // Create a test user
+                const { data: user, error: userError } = await currentSupabase
+                    .from('app_users')
+                    .insert({
+                        name: 'Test Admin',
+                        email: 'admin@test.com',
+                        role: 'admin',
+                        school_id: school.id,
+                        password_hash: 'admin123',
+                        is_active: true
+                    })
+                    .select()
+                    .single();
+                
+                if (userError) {
+                    addResult('error', `❌ Failed to create user: ${userError.message}`);
+                } else {
+                    addResult('success-result', `✅ Created user: ${JSON.stringify(user, null, 2)}`);
+                }
+                
+                // Verify data was created
+                await checkExistingData();
+                
+            } catch (error) {
+                addResult('error', `❌ Sample data creation failed: ${error.message}`);
+            }
+        }
+
+        async function checkExistingData() {
+            addResult('info', '🔍 Checking for existing data...');
+            
+            const tables = ['schools', 'app_users', 'assignments', 'study_materials', 'submissions'];
+            
+            for (const table of tables) {
+                try {
+                    // Try different approaches to find data
+                    
+                    // 1. Regular select
+                    const { data: regularData, error: regularError } = await currentSupabase
+                        .from(table)
+                        .select('*');
+                    
+                    // 2. Count query
+                    const { count, error: countError } = await currentSupabase
+                        .from(table)
+                        .select('*', { count: 'exact', head: true });
+                    
+                    // 3. Try with different RLS context
+                    const { data: publicData, error: publicError } = await currentSupabase
+                        .from(table)
+                        .select('*')
+                        .limit(10);
+                    
+                    addResult('info', `📊 ${table.toUpperCase()}:`);
+                    addResult('info', `  Regular query: ${regularError ? 'ERROR - ' + regularError.message : (regularData?.length || 0) + ' records'}`);
+                    addResult('info', `  Count query: ${countError ? 'ERROR - ' + countError.message : count + ' total records'}`);
+                    addResult('info', `  Public query: ${publicError ? 'ERROR - ' + publicError.message : (publicData?.length || 0) + ' records'}`);
+                    
+                    if (regularData && regularData.length > 0) {
+                        addResult('success-result', `✅ Found data in ${table}: ${JSON.stringify(regularData[0], null, 2)}`);
+                    }
+                    
+                } catch (error) {
+                    addResult('error', `❌ Error checking ${table}: ${error.message}`);
+                }
+            }
+        }
+
+        async function generateRLSFix() {
+            addResult('info', '🔧 Generating RLS fix SQL...');
+            
+            const rlsFixSQL = `
+-- Disable RLS temporarily to check data
+ALTER TABLE schools DISABLE ROW LEVEL SECURITY;
+ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE assignments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE study_materials DISABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE enrollments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE classes DISABLE ROW LEVEL SECURITY;
+
+-- Check if data exists
+SELECT 'schools' as table_name, count(*) as record_count FROM schools
+UNION ALL
+SELECT 'app_users' as table_name, count(*) as record_count FROM app_users
+UNION ALL
+SELECT 'assignments' as table_name, count(*) as record_count FROM assignments
+UNION ALL
+SELECT 'study_materials' as table_name, count(*) as record_count FROM study_materials
+UNION ALL
+SELECT 'submissions' as table_name, count(*) as record_count FROM submissions;
+
+-- Create permissive policies for testing
+CREATE POLICY "Allow all for testing" ON schools FOR ALL USING (true);
+CREATE POLICY "Allow all for testing" ON app_users FOR ALL USING (true);
+CREATE POLICY "Allow all for testing" ON assignments FOR ALL USING (true);
+CREATE POLICY "Allow all for testing" ON study_materials FOR ALL USING (true);
+CREATE POLICY "Allow all for testing" ON submissions FOR ALL USING (true);
+CREATE POLICY "Allow all for testing" ON enrollments FOR ALL USING (true);
+CREATE POLICY "Allow all for testing" ON classes FOR ALL USING (true);
+
+-- Re-enable RLS
+ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
+            `;
+            
+            addResult('success-result', '✅ RLS Fix SQL Generated:');
+            addResult('info', `<pre>${rlsFixSQL}</pre>`);
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(rlsFixSQL).then(() => {
+                addResult('success-result', '📋 SQL copied to clipboard! Run this in your Supabase SQL editor.');
+            });
+        }
+
+        async function disableRLS() {
+            addResult('info', '⚠️ Attempting to disable RLS (this may fail due to permissions)...');
+            
+            try {
+                // This will likely fail, but let's try
+                const { data, error } = await currentSupabase.rpc('exec_sql', {
+                    sql: 'ALTER TABLE schools DISABLE ROW LEVEL SECURITY;'
+                });
+                
+                if (error) {
+                    addResult('error', `❌ Cannot disable RLS via API: ${error.message}`);
+                    addResult('info', '💡 You need to run the SQL manually in Supabase dashboard > SQL Editor');
+                } else {
+                    addResult('success-result', '✅ RLS disabled successfully');
+                }
+            } catch (error) {
+                addResult('error', `❌ RLS disable failed: ${error.message}`);
+                addResult('info', '💡 Use the generated SQL in Supabase dashboard instead');
+            }
+        }
+
+        async function runCustomSQL() {
+            const sql = document.getElementById('customSQL').value;
+            addResult('info', `🔄 Running: ${sql}`);
+            
+            try {
+                // Try to run as RPC (won't work for most queries)
+                const { data, error } = await currentSupabase.rpc('exec_sql', { sql });
+                
+                if (error) {
+                    addResult('error', `❌ SQL execution failed: ${error.message}`);
+                    addResult('info', '💡 Try running this SQL directly in Supabase dashboard');
+                } else {
+                    addResult('success-result', `✅ SQL result: ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                addResult('error', `❌ Query failed: ${error.message}`);
+            }
+        }
+
+        // Auto-run initial checks
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addResult('info', '🚀 Database Recovery Tool loaded. Running initial checks...');
+                checkExistingData();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

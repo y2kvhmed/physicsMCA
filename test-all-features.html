@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Feature Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { margin: 5px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Supabase Feature Test Suite</h1>
+    <div id="results"></div>
+    
+    <h2>Manual Tests</h2>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="testAuth()">Test Auth</button>
+    <button onclick="testTables()">Test Tables</button>
+    <button onclick="testStorage()">Test Storage</button>
+    <button onclick="runAllTests()">Run All Tests</button>
+
+    <script type="module">
+        const results = document.getElementById('results');
+        
+        function addResult(test, success, message) {
+            const div = document.createElement('div');
+            div.className = `test ${success ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${test}:</strong> ${success ? '✅' : '❌'} ${message}`;
+            results.appendChild(div);
+        }
+
+        // Test Supabase connection
+        window.testConnection = async function() {
+            try {
+                const supabaseUrl = 'https://pxirgvkbrykkdutqxxhf.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w';
+                
+                const response = await fetch(`${supabaseUrl}/rest/v1/schools?select=count&limit=1`, {
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+                
+                if (response.ok) {
+                    addResult('Connection Test', true, 'Successfully connected to Supabase');
+                } else {
+                    addResult('Connection Test', false, `HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('Connection Test', false, error.message);
+            }
+        };
+
+        // Test authentication
+        window.testAuth = async function() {
+            try {
+                const supabaseUrl = 'https://pxirgvkbrykkdutqxxhf.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w';
+                
+                const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    addResult('Auth Test', true, 'Auth system working (no session as expected)');
+                } else if (response.ok) {
+                    addResult('Auth Test', true, 'Auth system working (user session found)');
+                } else {
+                    addResult('Auth Test', false, `HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('Auth Test', false, error.message);
+            }
+        };
+
+        // Test database tables
+        window.testTables = async function() {
+            const tables = ['schools', 'app_users', 'assignments', 'study_materials', 'submissions'];
+            const supabaseUrl = 'https://pxirgvkbrykkdutqxxhf.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w';
+            
+            for (const table of tables) {
+                try {
+                    const response = await fetch(`${supabaseUrl}/rest/v1/${table}?select=count&limit=1`, {
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        addResult(`Table: ${table}`, true, 'Accessible');
+                    } else {
+                        addResult(`Table: ${table}`, false, `HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    addResult(`Table: ${table}`, false, error.message);
+                }
+            }
+        };
+
+        // Test storage buckets
+        window.testStorage = async function() {
+            const buckets = ['study-materials', 'submissions', 'videos'];
+            const supabaseUrl = 'https://pxirgvkbrykkdutqxxhf.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w';
+            
+            for (const bucket of buckets) {
+                try {
+                    const response = await fetch(`${supabaseUrl}/storage/v1/object/list/${bucket}?limit=1`, {
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        addResult(`Storage: ${bucket}`, true, 'Accessible');
+                    } else {
+                        addResult(`Storage: ${bucket}`, false, `HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    addResult(`Storage: ${bucket}`, false, error.message);
+                }
+            }
+        };
+
+        // Run all tests
+        window.runAllTests = async function() {
+            results.innerHTML = '<h3>Running comprehensive tests...</h3>';
+            await testConnection();
+            await testAuth();
+            await testTables();
+            await testStorage();
+            addResult('All Tests', true, 'Completed - check individual results above');
+        };
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>

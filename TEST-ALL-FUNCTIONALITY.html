@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🧪 Test All Functionality</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f0f2f5; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            margin: 30px 0; 
+            padding: 20px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 10px; 
+        }
+        .test-section h3 { 
+            margin-top: 0; 
+            color: #333; 
+            border-bottom: 2px solid #007bff; 
+            padding-bottom: 10px;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px; 
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-success { background: #28a745; }
+        .btn-danger { background: #dc3545; }
+        .btn-warning { background: #ffc107; color: #000; }
+        .result { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            font-size: 12px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .data-display { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 5px; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            white-space: pre-wrap; 
+        }
+        .test-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 20px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Complete Functionality Test Suite</h1>
+        <p>This tool tests all major features of your physics learning app.</p>
+        
+        <button onclick="runAllTests()" style="font-size: 18px; padding: 15px 30px;">🚀 Run All Tests</button>
+        <button onclick="clearResults()" class="btn-warning">Clear Results</button>
+        
+        <div class="test-grid">
+            <!-- School Management Tests -->
+            <div class="test-section">
+                <h3>🏫 School Management</h3>
+                <button onclick="testSchoolOperations()">Test School CRUD</button>
+                <button onclick="createTestSchool()">Create Test School</button>
+                <button onclick="deleteTestData()" class="btn-danger">Delete Test Data</button>
+                <div id="schoolResults"></div>
+            </div>
+
+            <!-- User Management Tests -->
+            <div class="test-section">
+                <h3>👥 User Management</h3>
+                <button onclick="testUserOperations()">Test User CRUD</button>
+                <button onclick="testUserDeactivation()">Test Deactivation</button>
+                <button onclick="testLoginSystem()">Test Login</button>
+                <div id="userResults"></div>
+            </div>
+
+            <!-- Assignment Tests -->
+            <div class="test-section">
+                <h3>📝 Assignment Management</h3>
+                <button onclick="testAssignmentOperations()">Test Assignment CRUD</button>
+                <button onclick="testSubmissions()">Test Submissions</button>
+                <button onclick="testGrading()">Test Grading</button>
+                <div id="assignmentResults"></div>
+            </div>
+
+            <!-- Material Tests -->
+            <div class="test-section">
+                <h3>📚 Study Materials</h3>
+                <button onclick="testMaterialOperations()">Test Material CRUD</button>
+                <button onclick="testFileUpload()">Test File Upload</button>
+                <div id="materialResults"></div>
+            </div>
+
+            <!-- Recording Tests -->
+            <div class="test-section">
+                <h3>🎥 Recording Management</h3>
+                <button onclick="testRecordingOperations()">Test Recording CRUD</button>
+                <button onclick="testVideoPlayback()">Test Video Playback</button>
+                <div id="recordingResults"></div>
+            </div>
+
+            <!-- Messaging Tests -->
+            <div class="test-section">
+                <h3>💬 Messaging System</h3>
+                <button onclick="testMessaging()">Test Messages</button>
+                <button onclick="testAnnouncements()">Test Announcements</button>
+                <div id="messagingResults"></div>
+            </div>
+        </div>
+
+        <div id="globalResults"></div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://pxirgvkbrykkdutqxxhf.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w'
+        );
+        
+        let testData = {
+            schoolId: null,
+            adminId: null,
+            teacherId: null,
+            studentId: null,
+            classId: null,
+            assignmentId: null,
+            materialId: null
+        };
+
+        function addResult(containerId, type, message) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearResults() {
+            ['schoolResults', 'userResults', 'assignmentResults', 'materialResults', 'recordingResults', 'messagingResults', 'globalResults'].forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+        }
+
+        async function runAllTests() {
+            clearResults();
+            addResult('globalResults', 'info', '🚀 Starting comprehensive test suite...');
+            
+            try {
+                await testSchoolOperations();
+                await testUserOperations();
+                await testAssignmentOperations();
+                await testMaterialOperations();
+                await testRecordingOperations();
+                await testMessaging();
+                
+                addResult('globalResults', 'success', '✅ All tests completed! Check individual sections for results.');
+            } catch (error) {
+                addResult('globalResults', 'error', `❌ Test suite failed: ${error.message}`);
+            }
+        }
+
+        async function testSchoolOperations() {
+            addResult('schoolResults', 'info', '🏫 Testing school operations...');
+            
+            try {
+                // Create school
+                const { data: school, error: createError } = await supabase
+                    .from('schools')
+                    .insert({
+                        name: 'Test School ' + Date.now(),
+                        address: '123 Test Street',
+                        phone: '555-0123',
+                        email: 'test@school.com'
+                    })
+                    .select()
+                    .single();
+
+                if (createError) throw createError;
+                testData.schoolId = school.id;
+                addResult('schoolResults', 'success', `✅ School created: ${school.name}`);
+
+                // Read school
+                const { data: readSchool, error: readError } = await supabase
+                    .from('schools')
+                    .select('*')
+                    .eq('id', school.id)
+                    .single();
+
+                if (readError) throw readError;
+                addResult('schoolResults', 'success', '✅ School read successfully');
+
+                // Update school
+                const { data: updatedSchool, error: updateError } = await supabase
+                    .from('schools')
+                    .update({ name: school.name + ' (Updated)' })
+                    .eq('id', school.id)
+                    .select()
+                    .single();
+
+                if (updateError) throw updateError;
+                addResult('schoolResults', 'success', '✅ School updated successfully');
+
+                addResult('schoolResults', 'info', `📊 School data: <div class="data-display">${JSON.stringify(updatedSchool, null, 2)}</div>`);
+
+            } catch (error) {
+                addResult('schoolResults', 'error', `❌ School test failed: ${error.message}`);
+            }
+        }
+
+        async function testUserOperations() {
+            addResult('userResults', 'info', '👥 Testing user operations...');
+            
+            if (!testData.schoolId) {
+                addResult('userResults', 'error', '❌ No school ID available. Run school tests first.');
+                return;
+            }
+
+            try {
+                // Create admin user
+                const { data: admin, error: adminError } = await supabase
+                    .from('app_users')
+                    .insert({
+                        name: 'Test Admin',
+                        email: 'admin' + Date.now() + '@test.com',
+                        password_hash: 'admin123',
+                        role: 'admin',
+                        school_id: testData.schoolId,
+                        is_active: true
+                    })
+                    .select()
+                    .single();
+
+                if (adminError) throw adminError;
+                testData.adminId = admin.id;
+                addResult('userResults', 'success', `✅ Admin created: ${admin.name}`);
+
+                // Create teacher user
+                const { data: teacher, error: teacherError } = await supabase
+                    .from('app_users')
+                    .insert({
+                        name: 'Test Teacher',
+                        email: 'teacher' + Date.now() + '@test.com',
+                        password_hash: 'teacher123',
+                        role: 'teacher',
+                        school_id: testData.schoolId,
+                        is_active: true
+                    })
+                    .select()
+                    .single();
+
+                if (teacherError) throw teacherError;
+                testData.teacherId = teacher.id;
+                addResult('userResults', 'success', `✅ Teacher created: ${teacher.name}`);
+
+                // Create student user
+                const { data: student, error: studentError } = await supabase
+                    .from('app_users')
+                    .insert({
+                        name: 'Test Student',
+                        email: 'student' + Date.now() + '@test.com',
+                        password_hash: 'student123',
+                        role: 'student',
+                        school_id: testData.schoolId,
+                        is_active: true
+                    })
+                    .select()
+                    .single();
+
+                if (studentError) throw studentError;
+                testData.studentId = student.id;
+                addResult('userResults', 'success', `✅ Student created: ${student.name}`);
+
+                // Test user deactivation
+                const { error: deactivateError } = await supabase
+                    .from('app_users')
+                    .update({ is_active: false })
+                    .eq('id', student.id);
+
+                if (deactivateError) throw deactivateError;
+                addResult('userResults', 'success', '✅ User deactivation works');
+
+                // Reactivate for further tests
+                await supabase
+                    .from('app_users')
+                    .update({ is_active: true })
+                    .eq('id', student.id);
+
+                addResult('userResults', 'info', `📊 Created users: Admin, Teacher, Student`);
+
+            } catch (error) {
+                addResult('userResults', 'error', `❌ User test failed: ${error.message}`);
+            }
+        }
+
+        async function testAssignmentOperations() {
+            addResult('assignmentResults', 'info', '📝 Testing assignment operations...');
+            
+            if (!testData.schoolId || !testData.teacherId) {
+                addResult('assignmentResults', 'error', '❌ Missing school or teacher ID. Run previous tests first.');
+                return;
+            }
+
+            try {
+                // Create class first
+                const { data: classData, error: classError } = await supabase
+                    .from('classes')
+                    .insert({
+                        name: 'Test Physics Class',
+                        description: 'Test class for physics',
+                        school_id: testData.schoolId,
+                        teacher_id: testData.teacherId
+                    })
+                    .select()
+                    .single();
+
+                if (classError) throw classError;
+                testData.classId = classData.id;
+                addResult('assignmentResults', 'success', `✅ Class created: ${classData.name}`);
+
+                // Create assignment
+                const { data: assignment, error: assignmentError } = await supabase
+                    .from('assignments')
+                    .insert({
+                        title: 'Test Assignment ' + Date.now(),
+                        description: 'This is a test assignment',
+                        instructions: 'Complete all questions',
+                        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        max_score: 100,
+                        school_id: testData.schoolId,
+                        teacher_id: testData.teacherId,
+                        class_id: testData.classId
+                    })
+                    .select()
+                    .single();
+
+                if (assignmentError) throw assignmentError;
+                testData.assignmentId = assignment.id;
+                addResult('assignmentResults', 'success', `✅ Assignment created: ${assignment.title}`);
+
+                // Test submission
+                if (testData.studentId) {
+                    const { data: submission, error: submissionError } = await supabase
+                        .from('submissions')
+                        .insert({
+                            assignment_id: assignment.id,
+                            student_id: testData.studentId,
+                            file_name: 'test_submission.pdf',
+                            status: 'submitted'
+                        })
+                        .select()
+                        .single();
+
+                    if (submissionError) throw submissionError;
+                    addResult('assignmentResults', 'success', '✅ Submission created');
+
+                    // Test grading
+                    const { error: gradeError } = await supabase
+                        .from('submissions')
+                        .update({
+                            grade: 85,
+                            percentage: 85.0,
+                            feedback: 'Good work!',
+                            status: 'graded',
+                            graded_at: new Date().toISOString(),
+                            graded_by: testData.teacherId
+                        })
+                        .eq('id', submission.id);
+
+                    if (gradeError) throw gradeError;
+                    addResult('assignmentResults', 'success', '✅ Grading works');
+                }
+
+                addResult('assignmentResults', 'info', `📊 Assignment system fully functional`);
+
+            } catch (error) {
+                addResult('assignmentResults', 'error', `❌ Assignment test failed: ${error.message}`);
+            }
+        }
+
+        async function testMaterialOperations() {
+            addResult('materialResults', 'info', '📚 Testing material operations...');
+            
+            if (!testData.schoolId || !testData.teacherId) {
+                addResult('materialResults', 'error', '❌ Missing required IDs. Run previous tests first.');
+                return;
+            }
+
+            try {
+                // Create study material
+                const { data: material, error: materialError } = await supabase
+                    .from('study_materials')
+                    .insert({
+                        title: 'Test Study Material ' + Date.now(),
+                        description: 'This is a test study material',
+                        file_type: 'pdf',
+                        file_size: 1024,
+                        school_id: testData.schoolId,
+                        teacher_id: testData.teacherId,
+                        class_id: testData.classId
+                    })
+                    .select()
+                    .single();
+
+                if (materialError) throw materialError;
+                testData.materialId = material.id;
+                addResult('materialResults', 'success', `✅ Material created: ${material.title}`);
+
+                // Test material update
+                const { error: updateError } = await supabase
+                    .from('study_materials')
+                    .update({ description: 'Updated description' })
+                    .eq('id', material.id);
+
+                if (updateError) throw updateError;
+                addResult('materialResults', 'success', '✅ Material update works');
+
+                addResult('materialResults', 'info', `📊 Material system functional`);
+
+            } catch (error) {
+                addResult('materialResults', 'error', `❌ Material test failed: ${error.message}`);
+            }
+        }
+
+        async function testRecordingOperations() {
+            addResult('recordingResults', 'info', '🎥 Testing recording operations...');
+            
+            if (!testData.schoolId || !testData.teacherId) {
+                addResult('recordingResults', 'error', '❌ Missing required IDs. Run previous tests first.');
+                return;
+            }
+
+            try {
+                // Create video recording (stored as study material with video type)
+                const { data: recording, error: recordingError } = await supabase
+                    .from('study_materials')
+                    .insert({
+                        title: 'Test Video Lesson ' + Date.now(),
+                        description: 'This is a test video lesson',
+                        file_path: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                        file_type: 'video',
+                        school_id: testData.schoolId,
+                        teacher_id: testData.teacherId,
+                        class_id: testData.classId
+                    })
+                    .select()
+                    .single();
+
+                if (recordingError) throw recordingError;
+                addResult('recordingResults', 'success', `✅ Recording created: ${recording.title}`);
+
+                // Test recording update
+                const { error: updateError } = await supabase
+                    .from('study_materials')
+                    .update({ 
+                        title: recording.title + ' (Updated)',
+                        description: 'Updated video description'
+                    })
+                    .eq('id', recording.id);
+
+                if (updateError) throw updateError;
+                addResult('recordingResults', 'success', '✅ Recording update works');
+
+                addResult('recordingResults', 'info', `📊 Recording system functional`);
+
+            } catch (error) {
+                addResult('recordingResults', 'error', `❌ Recording test failed: ${error.message}`);
+            }
+        }
+
+        async function testMessaging() {
+            addResult('messagingResults', 'info', '💬 Testing messaging system...');
+            
+            // Check if messages table exists
+            try {
+                const { data, error } = await supabase
+                    .from('messages')
+                    .select('count')
+                    .limit(1);
+
+                if (error && error.message.includes('does not exist')) {
+                    addResult('messagingResults', 'error', '❌ Messages table does not exist. Please run ADD-MESSAGES-TABLE.sql first.');
+                    return;
+                }
+
+                if (!testData.teacherId || !testData.studentId) {
+                    addResult('messagingResults', 'error', '❌ Missing user IDs. Run user tests first.');
+                    return;
+                }
+
+                // Test direct message
+                const { data: message, error: messageError } = await supabase
+                    .from('messages')
+                    .insert({
+                        sender_id: testData.teacherId,
+                        recipient_id: testData.studentId,
+                        content: 'Hello student! This is a test message.',
+                        message_type: 'direct'
+                    })
+                    .select()
+                    .single();
+
+                if (messageError) throw messageError;
+                addResult('messagingResults', 'success', '✅ Direct message sent');
+
+                // Test class message
+                if (testData.classId) {
+                    const { data: classMessage, error: classMessageError } = await supabase
+                        .from('messages')
+                        .insert({
+                            sender_id: testData.teacherId,
+                            class_id: testData.classId,
+                            content: 'Class announcement: Test message to the class.',
+                            message_type: 'class'
+                        })
+                        .select()
+                        .single();
+
+                    if (classMessageError) throw classMessageError;
+                    addResult('messagingResults', 'success', '✅ Class message sent');
+                }
+
+                // Test announcement
+                const { data: announcement, error: announcementError } = await supabase
+                    .from('messages')
+                    .insert({
+                        sender_id: testData.teacherId,
+                        content: 'School announcement: This is a test announcement.',
+                        message_type: 'announcement'
+                    })
+                    .select()
+                    .single();
+
+                if (announcementError) throw announcementError;
+                addResult('messagingResults', 'success', '✅ Announcement sent');
+
+                addResult('messagingResults', 'info', `📊 Messaging system fully functional`);
+
+            } catch (error) {
+                addResult('messagingResults', 'error', `❌ Messaging test failed: ${error.message}`);
+            }
+        }
+
+        async function createTestSchool() {
+            try {
+                const { data, error } = await supabase
+                    .from('schools')
+                    .insert({
+                        name: 'Quick Test School',
+                        address: '456 Quick Street',
+                        phone: '555-9999',
+                        email: 'quick@test.com'
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                addResult('schoolResults', 'success', `✅ Quick school created: ${data.name} (ID: ${data.id})`);
+            } catch (error) {
+                addResult('schoolResults', 'error', `❌ Quick school creation failed: ${error.message}`);
+            }
+        }
+
+        async function deleteTestData() {
+            addResult('globalResults', 'info', '🗑️ Cleaning up test data...');
+            
+            try {
+                // Delete in reverse order of dependencies
+                if (testData.assignmentId) {
+                    await supabase.from('submissions').delete().eq('assignment_id', testData.assignmentId);
+                    await supabase.from('assignments').delete().eq('id', testData.assignmentId);
+                }
+                
+                if (testData.materialId) {
+                    await supabase.from('study_materials').delete().eq('id', testData.materialId);
+                }
+                
+                if (testData.classId) {
+                    await supabase.from('enrollments').delete().eq('class_id', testData.classId);
+                    await supabase.from('classes').delete().eq('id', testData.classId);
+                }
+                
+                if (testData.studentId || testData.teacherId || testData.adminId) {
+                    await supabase.from('messages').delete().or(`sender_id.eq.${testData.teacherId},recipient_id.eq.${testData.studentId}`);
+                    await supabase.from('app_users').delete().in('id', [testData.studentId, testData.teacherId, testData.adminId].filter(Boolean));
+                }
+                
+                if (testData.schoolId) {
+                    await supabase.from('schools').delete().eq('id', testData.schoolId);
+                }
+
+                // Reset test data
+                testData = {
+                    schoolId: null,
+                    adminId: null,
+                    teacherId: null,
+                    studentId: null,
+                    classId: null,
+                    assignmentId: null,
+                    materialId: null
+                };
+
+                addResult('globalResults', 'success', '✅ Test data cleaned up successfully');
+            } catch (error) {
+                addResult('globalResults', 'error', `❌ Cleanup failed: ${error.message}`);
+            }
+        }
+
+        async function testLoginSystem() {
+            addResult('userResults', 'info', '🔐 Testing login system...');
+            
+            try {
+                // Test with existing admin account
+                const { data: users, error } = await supabase
+                    .from('app_users')
+                    .select('email, password_hash, role, name')
+                    .eq('is_active', true)
+                    .limit(3);
+
+                if (error) throw error;
+
+                if (users && users.length > 0) {
+                    addResult('userResults', 'success', `✅ Found ${users.length} active users for login testing`);
+                    
+                    users.forEach(user => {
+                        addResult('userResults', 'info', `👤 ${user.name} (${user.role}) - Email: ${user.email}, Password: ${user.password_hash}`);
+                    });
+                } else {
+                    addResult('userResults', 'error', '❌ No active users found for login testing');
+                }
+            } catch (error) {
+                addResult('userResults', 'error', `❌ Login test failed: ${error.message}`);
+            }
+        }
+
+        // Auto-run basic connectivity test on load
+        window.addEventListener('load', async () => {
+            try {
+                const { data, error } = await supabase.from('schools').select('count').limit(1);
+                if (error) {
+                    addResult('globalResults', 'error', '❌ Database connection failed');
+                } else {
+                    addResult('globalResults', 'success', '✅ Database connected successfully');
+                }
+            } catch (error) {
+                addResult('globalResults', 'error', '❌ Connection test failed');
+            }
+        });
+    </script>
+</body>
+</html>

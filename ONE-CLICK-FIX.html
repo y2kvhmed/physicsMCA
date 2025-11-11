@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚀 One-Click Database Fix</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        h1 { 
+            color: #333; 
+            margin-bottom: 30px; 
+            font-size: 2.5em;
+        }
+        .big-button { 
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white; 
+            border: none; 
+            padding: 20px 40px; 
+            font-size: 24px; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            margin: 20px;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+            transition: all 0.3s ease;
+        }
+        .big-button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
+        }
+        .big-button:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+            transform: none;
+        }
+        .status { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border-radius: 10px; 
+            font-weight: bold;
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 2px solid #28a745;
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 2px solid #dc3545;
+        }
+        .info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            border: 2px solid #17a2b8;
+        }
+        .loading { 
+            background: #fff3cd; 
+            color: #856404; 
+            border: 2px solid #ffc107;
+        }
+        .spinner { 
+            border: 4px solid #f3f3f3; 
+            border-top: 4px solid #007bff; 
+            border-radius: 50%; 
+            width: 30px; 
+            height: 30px; 
+            animation: spin 1s linear infinite; 
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        .accounts { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+            text-align: left;
+        }
+        .account { 
+            background: white; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 One-Click Database Fix</h1>
+        <p>This will completely reset and fix your Supabase database with sample data.</p>
+        
+        <button class="big-button" id="fixButton" onclick="fixDatabase()">
+            🔧 Fix My Database Now!
+        </button>
+        
+        <div id="status"></div>
+        <div id="accounts"></div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://pxirgvkbrykkdutqxxhf.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4aXJndmticnlra2R1dHF4eGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDY1NjEsImV4cCI6MjA3NTQ4MjU2MX0.90BO0hVXJszO35lMgTKLiSrbkZ1gPP1q9zgZLiUxA5w'
+        );
+        
+        const statusDiv = document.getElementById('status');
+        const accountsDiv = document.getElementById('accounts');
+        const fixButton = document.getElementById('fixButton');
+        
+        function showStatus(type, message) {
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function showLoading(message) {
+            statusDiv.innerHTML = `
+                <div class="status loading">
+                    <div class="spinner"></div>
+                    ${message}
+                </div>
+            `;
+        }
+
+        async function fixDatabase() {
+            fixButton.disabled = true;
+            fixButton.textContent = '🔄 Fixing...';
+            
+            try {
+                showLoading('Step 1: Creating sample school...');
+                
+                // Step 1: Create school
+                const { data: school, error: schoolError } = await supabase
+                    .from('schools')
+                    .upsert({
+                        id: '550e8400-e29b-41d4-a716-446655440000',
+                        name: 'Test High School',
+                        address: '123 Education Street',
+                        phone: '+1-555-0123',
+                        email: 'admin@testschool.edu'
+                    }, { onConflict: 'id' })
+                    .select()
+                    .single();
+                
+                if (schoolError) throw new Error(`School creation failed: ${schoolError.message}`);
+                
+                showLoading('Step 2: Creating user accounts...');
+                
+                // Step 2: Create users
+                const users = [
+                    {
+                        id: '550e8400-e29b-41d4-a716-446655440001',
+                        name: 'System Administrator',
+                        email: 'admin@testschool.edu',
+                        password_hash: 'admin123',
+                        role: 'admin',
+                        school_id: school.id,
+                        is_active: true
+                    },
+                    {
+                        id: '550e8400-e29b-41d4-a716-446655440002',
+                        name: 'John Teacher',
+                        email: 'teacher@testschool.edu',
+                        password_hash: 'teacher123',
+                        role: 'teacher',
+                        school_id: school.id,
+                        is_active: true
+                    },
+                    {
+                        id: '550e8400-e29b-41d4-a716-446655440003',
+                        name: 'Jane Student',
+                        email: 'student@testschool.edu',
+                        password_hash: 'student123',
+                        role: 'student',
+                        school_id: school.id,
+                        is_active: true
+                    }
+                ];
+                
+                const { data: createdUsers, error: usersError } = await supabase
+                    .from('app_users')
+                    .upsert(users, { onConflict: 'id' })
+                    .select();
+                
+                if (usersError) throw new Error(`Users creation failed: ${usersError.message}`);
+                
+                showLoading('Step 3: Creating class...');
+                
+                // Step 3: Create class
+                const teacher = createdUsers.find(u => u.role === 'teacher');
+                const { data: classData, error: classError } = await supabase
+                    .from('classes')
+                    .upsert({
+                        id: '550e8400-e29b-41d4-a716-446655440004',
+                        name: 'Physics 101',
+                        description: 'Introduction to Physics',
+                        school_id: school.id,
+                        teacher_id: teacher.id
+                    }, { onConflict: 'id' })
+                    .select()
+                    .single();
+                
+                if (classError) throw new Error(`Class creation failed: ${classError.message}`);
+                
+                showLoading('Step 4: Enrolling student...');
+                
+                // Step 4: Enroll student
+                const student = createdUsers.find(u => u.role === 'student');
+                const { error: enrollError } = await supabase
+                    .from('enrollments')
+                    .upsert({
+                        student_id: student.id,
+                        class_id: classData.id
+                    }, { onConflict: 'student_id,class_id' });
+                
+                if (enrollError) throw new Error(`Enrollment failed: ${enrollError.message}`);
+                
+                showLoading('Step 5: Creating sample assignment...');
+                
+                // Step 5: Create assignment
+                const { error: assignmentError } = await supabase
+                    .from('assignments')
+                    .upsert({
+                        id: '550e8400-e29b-41d4-a716-446655440005',
+                        title: 'Newton Laws Assignment',
+                        description: 'Complete exercises on Newton three laws of motion',
+                        school_id: school.id,
+                        teacher_id: teacher.id,
+                        class_id: classData.id,
+                        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                    }, { onConflict: 'id' });
+                
+                if (assignmentError) throw new Error(`Assignment creation failed: ${assignmentError.message}`);
+                
+                showLoading('Step 6: Verifying setup...');
+                
+                // Step 6: Verify everything works
+                const { data: verifySchools } = await supabase.from('schools').select('*');
+                const { data: verifyUsers } = await supabase.from('app_users').select('*');
+                const { data: verifyClasses } = await supabase.from('classes').select('*');
+                const { data: verifyAssignments } = await supabase.from('assignments').select('*');
+                
+                showStatus('success', `
+                    ✅ DATABASE FIX COMPLETE!<br><br>
+                    📊 Created:<br>
+                    • ${verifySchools?.length || 0} Schools<br>
+                    • ${verifyUsers?.length || 0} Users<br>
+                    • ${verifyClasses?.length || 0} Classes<br>
+                    • ${verifyAssignments?.length || 0} Assignments
+                `);
+                
+                // Show login accounts
+                accountsDiv.innerHTML = `
+                    <div class="accounts">
+                        <h3>🔐 Test Login Accounts</h3>
+                        ${createdUsers.map(user => `
+                            <div class="account">
+                                <strong>${user.name}</strong> (${user.role})<br>
+                                📧 Email: <code>${user.email}</code><br>
+                                🔑 Password: <code>${user.password_hash}</code>
+                            </div>
+                        `).join('')}
+                        <p><strong>✅ Your database is now ready! Use these accounts to test login.</strong></p>
+                    </div>
+                `;
+                
+                fixButton.textContent = '✅ Fixed!';
+                
+            } catch (error) {
+                showStatus('error', `❌ Fix failed: ${error.message}`);
+                fixButton.disabled = false;
+                fixButton.textContent = '🔧 Try Again';
+            }
+        }
+
+        // Auto-check status on load
+        window.addEventListener('load', async () => {
+            try {
+                const { data: schools } = await supabase.from('schools').select('count');
+                const { data: users } = await supabase.from('app_users').select('count');
+                
+                if (schools && schools.length > 0 && users && users.length > 0) {
+                    showStatus('info', '✅ Database already has data. Click to reset and fix any issues.');
+                } else {
+                    showStatus('info', '⚠️ Database appears empty. Click to set up sample data.');
+                }
+            } catch (error) {
+                showStatus('error', '❌ Cannot connect to database. Check your Supabase configuration.');
+            }
+        });
+    </script>
+</body>
+</html>
